@@ -1,0 +1,293 @@
+import React, { useState, useEffect } from 'react';
+import './App.css';
+import Header from './components/Header';
+import ProductCard from './components/ProductCard';
+import Cart from './components/Cart';
+import ProductModal from './components/ProductModal';
+import { leagues, getAllJerseys, getJerseysByLeague } from './data/teams';
+import { Star, Trophy, Truck, Shield, RotateCcw } from 'lucide-react';
+
+function App() {
+  const [cartItems, setCartItems] = useState([]);
+  const [isCartOpen, setIsCartOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
+  const [filteredJerseys, setFilteredJerseys] = useState([]);
+  const [selectedLeague, setSelectedLeague] = useState('all');
+
+  // Initialize jerseys
+  useEffect(() => {
+    setFilteredJerseys(getAllJerseys());
+  }, []);
+
+  // Filter jerseys by league
+  const handleLeagueFilter = (leagueId) => {
+    setSelectedLeague(leagueId);
+    if (leagueId === 'all') {
+      setFilteredJerseys(getAllJerseys());
+    } else {
+      setFilteredJerseys(getJerseysByLeague(leagueId));
+    }
+  };
+
+  // Add item to cart
+  const handleAddToCart = (jersey) => {
+    setCartItems(prevItems => {
+      const existingItem = prevItems.find(item => item.id === jersey.id);
+      if (existingItem) {
+        return prevItems.map(item =>
+          item.id === jersey.id
+            ? { ...item, quantity: item.quantity + (jersey.quantity || 1) }
+            : item
+        );
+      } else {
+        return [...prevItems, { ...jersey, quantity: jersey.quantity || 1 }];
+      }
+    });
+  };
+
+  // Update cart item quantity
+  const handleUpdateQuantity = (itemId, newQuantity) => {
+    if (newQuantity === 0) {
+      handleRemoveItem(itemId);
+    } else {
+      setCartItems(prevItems =>
+        prevItems.map(item =>
+          item.id === itemId ? { ...item, quantity: newQuantity } : item
+        )
+      );
+    }
+  };
+
+  // Remove item from cart
+  const handleRemoveItem = (itemId) => {
+    setCartItems(prevItems => prevItems.filter(item => item.id !== itemId));
+  };
+
+  // Open product modal
+  const handleProductClick = (jersey) => {
+    setSelectedProduct(jersey);
+    setIsProductModalOpen(true);
+  };
+
+  // Handle checkout
+  const handleCheckout = () => {
+    alert('Funcionalidade de checkout será implementada em breve!');
+    setIsCartOpen(false);
+  };
+
+  // Handle search
+  const handleSearch = (searchTerm) => {
+    if (!searchTerm.trim()) {
+      setFilteredJerseys(getAllJerseys());
+      return;
+    }
+    
+    const filtered = getAllJerseys().filter(jersey =>
+      jersey.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      jersey.teamName.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    setFilteredJerseys(filtered);
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Header
+        cartItems={cartItems}
+        onCartClick={() => setIsCartOpen(true)}
+        onSearch={handleSearch}
+      />
+
+      {/* Hero Section */}
+      <section className="bg-gradient-to-r from-green-600 to-green-800 text-white py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h1 className="text-4xl md:text-6xl font-bold mb-4">
+            Camisas Oficiais dos Principais Times do Mundo
+          </h1>
+          <p className="text-xl md:text-2xl mb-8 opacity-90">
+            Uniformes 1 e 2 das melhores ligas de futebol
+          </p>
+          <div className="flex flex-wrap justify-center gap-4 text-lg">
+            <div className="flex items-center space-x-2">
+              <Trophy className="h-6 w-6" />
+              <span>Produtos Oficiais</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Truck className="h-6 w-6" />
+              <span>Frete Grátis</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Shield className="h-6 w-6" />
+              <span>Compra Segura</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Leagues Section */}
+      <section className="py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h2 className="text-3xl font-bold text-center mb-8">Principais Ligas</h2>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
+            <button
+              onClick={() => handleLeagueFilter('all')}
+              className={`p-4 rounded-lg border-2 transition-all ${
+                selectedLeague === 'all'
+                  ? 'border-green-500 bg-green-50'
+                  : 'border-gray-200 hover:border-green-300'
+              }`}
+            >
+              <div className="text-2xl mb-2">🌍</div>
+              <p className="font-medium text-sm">Todas as Ligas</p>
+            </button>
+            {leagues.map(league => (
+              <button
+                key={league.id}
+                onClick={() => handleLeagueFilter(league.id)}
+                className={`p-4 rounded-lg border-2 transition-all ${
+                  selectedLeague === league.id
+                    ? 'border-green-500 bg-green-50'
+                    : 'border-gray-200 hover:border-green-300'
+                }`}
+              >
+                <div className="text-2xl mb-2">{league.logo}</div>
+                <p className="font-medium text-sm">{league.name}</p>
+                <p className="text-xs text-gray-600">{league.country}</p>
+              </button>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Products Section */}
+      <section className="py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="text-3xl font-bold">
+              {selectedLeague === 'all' ? 'Todos os Produtos' :
+               leagues.find(l => l.id === selectedLeague)?.name || 'Produtos'}
+            </h2>
+            <p className="text-gray-600">
+              {filteredJerseys.length} produto{filteredJerseys.length !== 1 ? 's' : ''} encontrado{filteredJerseys.length !== 1 ? 's' : ''}
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filteredJerseys.map(jersey => (
+              <ProductCard
+                key={jersey.id}
+                jersey={jersey}
+                onAddToCart={handleAddToCart}
+                onProductClick={handleProductClick}
+              />
+            ))}
+          </div>
+
+          {filteredJerseys.length === 0 && (
+            <div className="text-center py-12">
+              <p className="text-gray-500 text-lg">Nenhum produto encontrado</p>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section className="bg-white py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <h2 className="text-3xl font-bold text-center mb-12">Por que escolher nossa loja?</h2>
+          <div className="grid md:grid-cols-3 gap-8">
+            <div className="text-center">
+              <div className="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Shield className="h-8 w-8 text-green-600" />
+              </div>
+              <h3 className="text-xl font-semibold mb-2">Produtos Oficiais</h3>
+              <p className="text-gray-600">
+                Todas as camisas são oficiais e licenciadas pelos clubes
+              </p>
+            </div>
+            <div className="text-center">
+              <div className="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Truck className="h-8 w-8 text-green-600" />
+              </div>
+              <h3 className="text-xl font-semibold mb-2">Frete Grátis</h3>
+              <p className="text-gray-600">
+                Entrega gratuita para todo o Brasil em compras acima de R$ 200
+              </p>
+            </div>
+            <div className="text-center">
+              <div className="bg-green-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <RotateCcw className="h-8 w-8 text-green-600" />
+              </div>
+              <h3 className="text-xl font-semibold mb-2">Troca Garantida</h3>
+              <p className="text-gray-600">
+                Troca grátis em até 30 dias se não ficar satisfeito
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="bg-gray-900 text-white py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid md:grid-cols-4 gap-8">
+            <div>
+              <h3 className="text-xl font-bold mb-4">⚽ Football Store</h3>
+              <p className="text-gray-400">
+                A melhor loja de camisas de futebol do Brasil
+              </p>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-4">Links Úteis</h4>
+              <ul className="space-y-2 text-gray-400">
+                <li><a href="#" className="hover:text-white">Sobre Nós</a></li>
+                <li><a href="#" className="hover:text-white">Política de Privacidade</a></li>
+                <li><a href="#" className="hover:text-white">Termos de Uso</a></li>
+                <li><a href="#" className="hover:text-white">FAQ</a></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-4">Atendimento</h4>
+              <ul className="space-y-2 text-gray-400">
+                <li>WhatsApp: (11) 99999-9999</li>
+                <li>Email: contato@footballstore.com</li>
+                <li>Seg-Sex: 9h às 18h</li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-4">Redes Sociais</h4>
+              <div className="flex space-x-4">
+                <a href="#" className="text-gray-400 hover:text-white">Facebook</a>
+                <a href="#" className="text-gray-400 hover:text-white">Instagram</a>
+                <a href="#" className="text-gray-400 hover:text-white">Twitter</a>
+              </div>
+            </div>
+          </div>
+          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
+            <p>&copy; 2024 Football Store. Todos os direitos reservados.</p>
+          </div>
+        </div>
+      </footer>
+
+      {/* Cart */}
+      <Cart
+        isOpen={isCartOpen}
+        onClose={() => setIsCartOpen(false)}
+        cartItems={cartItems}
+        onUpdateQuantity={handleUpdateQuantity}
+        onRemoveItem={handleRemoveItem}
+        onCheckout={handleCheckout}
+      />
+
+      {/* Product Modal */}
+      <ProductModal
+        jersey={selectedProduct}
+        isOpen={isProductModalOpen}
+        onClose={() => setIsProductModalOpen(false)}
+        onAddToCart={handleAddToCart}
+      />
+    </div>
+  );
+}
+
+export default App;
